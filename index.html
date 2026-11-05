@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2-Bit Binary Multiplier Combinational Circuit Simulator</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .wire-low {
+      stroke: #334155;
+      stroke-width: 3;
+      fill: none;
+      transition: stroke 0.25s ease, filter 0.25s ease, stroke-width 0.25s ease;
+    }
+    .wire-high {
+      stroke: #10b981;
+      stroke-width: 3.5;
+      fill: none;
+      filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.75));
+      stroke-dasharray: 8 4;
+      animation: pulseFlow 0.9s linear infinite;
+      transition: stroke 0.25s ease, filter 0.25s ease;
+    }
+    .wire-high-static {
+      stroke: #10b981;
+      stroke-width: 3.5;
+      fill: none;
+      filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.75));
+    }
+    .wire-carry-high {
+      stroke: #f59e0b;
+      stroke-width: 3.5;
+      fill: none;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+      stroke-dasharray: 8 4;
+      animation: pulseFlow 0.9s linear infinite;
+    }
+    @keyframes pulseFlow {
+      to {
+        stroke-dashoffset: -12;
+      }
+    }
+    .gate-box {
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+    .gate-box:hover {
+      filter: brightness(1.2) drop-shadow(0 0 8px rgba(56, 189, 248, 0.4));
+    }
+    .bit-pill {
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- Top Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold mono text-lg shadow-inner">
+          2×2
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            2-Bit Binary Multiplier Simulator
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">COA Project</span>
+          </h1>
+          <p class="text-xs text-slate-400" id="subtitleText">Combinational logic using 4 AND gates &amp; 2 Half Adders (HA1, HA2)</p>
+        </div>
+      </div>
+
+      <!-- Toolbar Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- View Mode Switch -->
+        <div class="inline-flex rounded-lg bg-slate-800 p-1 border border-slate-700">
+          <button id="btnViewBlock" class="px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950 shadow transition">
+            Half-Adder Block View
+          </button>
+          <button id="btnViewGate" class="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition">
+            Gate-Level (XOR + AND)
+          </button>
+        </div>
+
+        <!-- Animation toggle -->
+        <button id="btnPulseToggle" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping" id="pulseDot"></span>
+          <span id="pulseLabel">Signal Flow: ON</span>
+        </button>
+
+        <!-- Language Note Toggle -->
+        <button id="btnLangToggle" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 transition">
+          বাংলা / Banglish Guide
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="max-w-7xl mx-auto w-full px-4 py-5 flex-1 flex flex-col gap-5">
+
+    <!-- Collapsible Banglish / Project Explanation Banner -->
+    <section id="guideBanner" class="hidden rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-500/40 p-4 sm:p-5 shadow-lg">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-2 text-xs sm:text-sm text-slate-200 leading-relaxed">
+          <h2 class="text-sm sm:text-base font-bold text-indigo-300 flex items-center gap-2">
+            <span>📘 প্রজেক্টের সহজ ব্যাখ্যা (Project Overview in Banglish &amp; Bengali)</span>
+          </h2>
+          <p>
+            <strong>প্রজেক্টের মূল কাজ:</strong> দুটো 2-bit বাইনারি সংখ্যা <span class="mono text-sky-300">A = A₁A₀</span> এবং <span class="mono text-amber-300">B = B₁B₀</span> গুণ (multiply) করে একটি 4-bit ফলাফল <span class="mono text-emerald-300">C = C₃C₂C₁C₀</span> তৈরি করা। যেহেতু সর্বোচ্চ মান <span class="mono">3 × 3 = 9 (1001₂)</span>, তাই আউটপুটে সর্বোচ্চ ৪টি বিট লাগে।
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+              <div class="font-semibold text-sky-400 mb-1">Step 1: Partial Products (AND Gates)</div>
+              <p class="text-xs text-slate-300">কাগজে-কলমে গুণের মতো প্রতিটি বিটের সাথে প্রতিটি বিট গুণ করতে <strong>৪টি AND Gate</strong> লাগে: <span class="mono">P₀ = A₀·B₀</span>, <span class="mono">P₁ = A₁·B₀</span>, <span class="mono">P₂ = A₀·B₁</span>, এবং <span class="mono">P₃ = A₁·B₁</span>।</p>
+            </div>
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+              <div class="font-semibold text-amber-400 mb-1">Step 2: Half Adder 1 (HA1)</div>
+              <p class="text-xs text-slate-300"><span class="mono">C₀ = A₀·B₀</span> সরাসরি বসে যায়। মাঝখানের দুটি গুণফল <span class="mono">A₁B₀</span> ও <span class="mono">A₀B₁</span> যোগ করতে <strong>প্রথম Half Adder (HA1)</strong> ব্যবহার হয়। এর Sum হয় <span class="mono">C₁</span> এবং Carry <span class="mono">K₁</span> পরের ধাপে যায়।</p>
+            </div>
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+              <div class="font-semibold text-emerald-400 mb-1">Step 3: Half Adder 2 (HA2)</div>
+              <p class="text-xs text-slate-300">HA1 এর Carry (<span class="mono">K₁</span>) এবং শেষ Partial Product (<span class="mono">A₁B₁</span>) যোগ করতে <strong>দ্বিতীয় Half Adder (HA2)</strong> লাগে। এর Sum হয় <span class="mono">C₂</span> এবং Carry হয় সর্বোচ্চ বিট <span class="mono">C₃</span>।</p>
+            </div>
+          </div>
+        </div>
+        <button id="btnCloseGuide" class="text-slate-400 hover:text-white text-xs px-2 py-1 rounded bg-slate-800">✕</button>
+      </div>
+    </section>
+
+    <!-- Top Control Deck: Inputs A & B, Multiplication Math, and 4-Bit Output LEDs -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- Left: Binary Input Controls (4 Cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-4 shadow-lg">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">1. Binary Inputs (ইনপুট সুইচ)</h2>
+            <span class="text-xs text-slate-400 mono">Click bit to toggle</span>
+          </div>
+
+          <!-- Input A -->
+          <div class="bg-slate-950/80 border border-slate-800/90 rounded-xl p-3 mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <span class="text-sm font-bold text-sky-400">Multiplicand (A)</span>
+                <span class="text-xs text-slate-400 block">2-Bit Input: A₁ (MSB), A₀ (LSB)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400 block">Decimal</span>
+                <span id="decA" class="text-xl font-extrabold text-sky-400 mono">3</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button id="btnA1" data-bit="A1" class="bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-sky-500/15 border-sky-500 text-white">
+                <div class="text-left">
+                  <div class="text-xs font-bold text-sky-300 mono">A₁ (Bit 1)</div>
+                  <div class="text-[11px] text-slate-400">Weight: 2¹ = 2</div>
+                </div>
+                <span id="valA1" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-sky-500 text-slate-950 shadow">1</span>
+              </button>
+              <button id="btnA0" data-bit="A0" class="bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-sky-500/15 border-sky-500 text-white">
+                <div class="text-left">
+                  <div class="text-xs font-bold text-sky-300 mono">A₀ (Bit 0)</div>
+                  <div class="text-[11px] text-slate-400">Weight: 2⁰ = 1</div>
+                </div>
+                <span id="valA0" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-sky-500 text-slate-950 shadow">1</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Input B -->
+          <div class="bg-slate-950/80 border border-slate-800/90 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <span class="text-sm font-bold text-amber-400">Multiplier (B)</span>
+                <span class="text-xs text-slate-400 block">2-Bit Input: B₁ (MSB), B₀ (LSB)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400 block">Decimal</span>
+                <span id="decB" class="text-xl font-extrabold text-amber-400 mono">2</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button id="btnB1" data-bit="B1" class="bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-amber-500/15 border-amber-500 text-white">
+                <div class="text-left">
+                  <div class="text-xs font-bold text-amber-300 mono">B₁ (Bit 1)</div>
+                  <div class="text-[11px] text-slate-400">Weight: 2¹ = 2</div>
+                </div>
+                <span id="valB1" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-amber-500 text-slate-950 shadow">1</span>
+              </button>
+              <button id="btnB0" data-bit="B0" class="bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-slate-900 border-slate-700 text-slate-300">
+                <div class="text-left">
+                  <div class="text-xs font-bold text-amber-300 mono">B₀ (Bit 0)</div>
+                  <div class="text-[11px] text-slate-400">Weight: 2⁰ = 1</div>
+                </div>
+                <span id="valB0" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-slate-800 text-slate-400">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Test Presets -->
+        <div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Quick Test Presets (উদাহরণ)</div>
+          <div class="grid grid-cols-4 gap-1.5">
+            <button data-preset="0,0,0,0" class="preset-btn px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs mono text-slate-200 border border-slate-700 transition">0×0=0</button>
+            <button data-preset="1,0,1,1" class="preset-btn px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs mono text-slate-200 border border-slate-700 transition">2×3=6</button>
+            <button data-preset="1,1,1,0" class="preset-btn px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs mono text-slate-200 border border-slate-700 transition">3×2=6</button>
+            <button data-preset="1,1,1,1" class="preset-btn px-2 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs mono text-emerald-300 border border-emerald-500/40 font-semibold transition">3×3=9</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Step-by-Step Binary Multiplication Paper View (4 Cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">2. Partial Products &amp; Addition</h2>
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 mono" id="mathSummaryBadge">11₂ × 10₂ = 0110₂</span>
+        </div>
+
+        <!-- Paper Multiplication Matrix -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 mono text-sm space-y-1.5">
+          <!-- Multiplicand A -->
+          <div class="grid grid-cols-6 items-center text-center">
+            <span class="col-span-2 text-left text-xs text-slate-400 font-sans">A (Multiplicand)</span>
+            <span></span>
+            <span></span>
+            <span id="mA1" class="font-bold text-sky-400 text-base">1</span>
+            <span id="mA0" class="font-bold text-sky-400 text-base">1</span>
+          </div>
+          <!-- Multiplier B -->
+          <div class="grid grid-cols-6 items-center text-center border-b border-slate-800 pb-1.5">
+            <span class="col-span-2 text-left text-xs text-slate-400 font-sans">× B (Multiplier)</span>
+            <span></span>
+            <span class="text-slate-500">×</span>
+            <span id="mB1" class="font-bold text-amber-400 text-base">1</span>
+            <span id="mB0" class="font-bold text-amber-400 text-base">0</span>
+          </div>
+
+          <!-- Partial Product Row 0 -->
+          <div class="grid grid-cols-6 items-center text-center pt-1">
+            <span class="col-span-2 text-left text-[11px] text-slate-400 font-sans">PP1 (<span class="mono">A × B₀</span>)</span>
+            <span></span>
+            <span></span>
+            <span id="mP1" class="px-1.5 py-0.5 rounded bg-slate-900 text-purple-300 font-bold" title="P1 = A1 AND B0">0</span>
+            <span id="mP0" class="px-1.5 py-0.5 rounded bg-slate-900 text-emerald-300 font-bold" title="P0 = A0 AND B0">0</span>
+          </div>
+
+          <!-- Partial Product Row 1 -->
+          <div class="grid grid-cols-6 items-center text-center">
+            <span class="col-span-2 text-left text-[11px] text-slate-400 font-sans">PP2 (<span class="mono">A × B₁</span>)</span>
+            <span></span>
+            <span id="mP3" class="px-1.5 py-0.5 rounded bg-slate-900 text-pink-300 font-bold" title="P3 = A1 AND B1">1</span>
+            <span id="mP2" class="px-1.5 py-0.5 rounded bg-slate-900 text-purple-300 font-bold" title="P2 = A0 AND B1">1</span>
+            <span class="text-slate-600 text-xs">0</span>
+          </div>
+
+          <!-- Internal Carry Row -->
+          <div class="grid grid-cols-6 items-center text-center border-b border-slate-800 pb-1.5">
+            <span class="col-span-2 text-left text-[11px] text-amber-400/90 font-sans">HA1 Carry (<span class="mono">K₁</span>)</span>
+            <span></span>
+            <span id="mK1" class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold text-xs border border-amber-500/30" title="Carry from HA1 = P1 AND P2">0</span>
+            <span class="text-slate-600 text-xs">←</span>
+            <span></span>
+          </div>
+
+          <!-- Final Product C3 C2 C1 C0 -->
+          <div class="grid grid-cols-6 items-center text-center pt-1">
+            <span class="col-span-2 text-left text-xs font-bold text-emerald-400 font-sans">Product (C₃..C₀)</span>
+            <span id="mC3" class="font-extrabold text-base text-emerald-400">0</span>
+            <span id="mC2" class="font-extrabold text-base text-emerald-400">1</span>
+            <span id="mC1" class="font-extrabold text-base text-emerald-400">1</span>
+            <span id="mC0" class="font-extrabold text-base text-emerald-400">0</span>
+          </div>
+        </div>
+
+        <!-- Mini Gate Breakdown Legend -->
+        <div class="grid grid-cols-2 gap-2 mt-3 text-[11px]">
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-400">HA1 (<span class="mono">P₁ + P₂</span>):</span>
+            <span class="mono text-slate-200" id="ha1MiniStatus">S=1, C=0</span>
+          </div>
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-400">HA2 (<span class="mono">K₁ + P₃</span>):</span>
+            <span class="mono text-slate-200" id="ha2MiniStatus">S=1, C=0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: 4-Bit Output LED Display & Decimal Result (4 Cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-4 shadow-lg">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">3. 4-Bit Output LEDs (ফলাফল)</h2>
+            <span class="text-xs font-semibold text-emerald-400 mono" id="decimalEquation">3 × 2 = 6</span>
+          </div>
+
+          <!-- 4 LEDs Grid -->
+          <div class="grid grid-cols-4 gap-2">
+            <!-- C3 -->
+            <div id="ledCardC3" class="rounded-xl p-3 border text-center transition bg-slate-950 border-slate-800">
+              <div class="text-xs font-bold mono text-slate-400 mb-1">C₃ (MSB)</div>
+              <div id="ledBulbC3" class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-slate-800 text-slate-500 border border-slate-700">
+                0
+              </div>
+              <div class="text-[10px] text-slate-400 mono">2³ = 8</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">HA2 Carry</div>
+            </div>
+
+            <!-- C2 -->
+            <div id="ledCardC2" class="rounded-xl p-3 border text-center transition bg-slate-950 border-slate-800">
+              <div class="text-xs font-bold mono text-slate-400 mb-1">C₂</div>
+              <div id="ledBulbC2" class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-slate-800 text-slate-500 border border-slate-700">
+                1
+              </div>
+              <div class="text-[10px] text-slate-400 mono">2² = 4</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">HA2 Sum</div>
+            </div>
+
+            <!-- C1 -->
+            <div id="ledCardC1" class="rounded-xl p-3 border text-center transition bg-slate-950 border-slate-800">
+              <div class="text-xs font-bold mono text-slate-400 mb-1">C₁</div>
+              <div id="ledBulbC1" class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-slate-800 text-slate-500 border border-slate-700">
+                1
+              </div>
+              <div class="text-[10px] text-slate-400 mono">2¹ = 2</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">HA1 Sum</div>
+            </div>
+
+            <!-- C0 -->
+            <div id="ledCardC0" class="rounded-xl p-3 border text-center transition bg-slate-950 border-slate-800">
+              <div class="text-xs font-bold mono text-slate-400 mb-1">C₀ (LSB)</div>
+              <div id="ledBulbC0" class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-slate-800 text-slate-500 border border-slate-700">
+                0
+              </div>
+              <div class="text-[10px] text-slate-400 mono">2⁰ = 1</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">A₀ · B₀</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gate Inspector Box -->
+        <div id="inspectorBox" class="bg-slate-950/90 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-1">
+            <span id="inspTitle" class="text-xs font-bold text-sky-400">🔍 Gate Inspector (Click any gate below)</span>
+            <span id="inspBadge" class="text-[11px] mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Active</span>
+          </div>
+          <p id="inspDesc" class="text-xs text-slate-300 leading-relaxed">
+            Click on any <strong>AND gate</strong> or <strong>Half Adder</strong> in the schematic diagram below to inspect its exact inputs, Boolean equation, and live output state.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center Interactive Schematic Diagram Canvas -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>⚡ Interactive Combinational Logic Schematic Diagram</span>
+            <span id="viewModeBadge" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              4 AND Gates + 2 Half Adders
+            </span>
+          </h2>
+          <p class="text-xs text-slate-400">Click the input pins on the left (<span class="mono text-sky-300">A₁, A₀, B₁, B₀</span>) to toggle bits, or click any gate to inspect its operation.</p>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex items-center gap-4 text-xs">
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-1 rounded bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
+            <span class="text-slate-300">Logic 1 (HIGH)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-1 rounded bg-amber-400 shadow-[0_0_6px_#f59e0b]"></span>
+            <span class="text-slate-300">Internal Carry 1</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-1 rounded bg-slate-600"></span>
+            <span class="text-slate-400">Logic 0 (LOW)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsive SVG Container -->
+      <div class="w-full overflow-x-auto bg-slate-950 border border-slate-800/90 rounded-xl p-2">
+        <svg id="circuitSvg" viewBox="0 0 980 490" class="w-full h-auto min-w-[740px] select-none">
+          <defs>
+            <!-- Subtle Background Grid -->
+            <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e293b" stroke-width="0.6"/>
+            </pattern>
+            <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+              <rect width="100" height="100" fill="url(#smallGrid)"/>
+              <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#334155" stroke-width="0.9"/>
+            </pattern>
+          </defs>
+
+          <!-- Grid Background -->
+          <rect width="980" height="490" fill="url(#grid)" rx="10" />
+
+          <!-- Column Stage Labels -->
+          <g class="text-[11px] font-bold fill-slate-400" style="letter-spacing: 0.06em;">
+            <text x="58" y="26" text-anchor="middle">INPUT BUS</text>
+            <text x="315" y="26" text-anchor="middle">STAGE 1: PARTIAL PRODUCTS (AND GATES)</text>
+            <text x="640" y="26" text-anchor="middle" id="stage2Header">STAGE 2: COMBINING (HALF ADDERS)</text>
+            <text x="905" y="26" text-anchor="middle">4-BIT OUTPUTS</text>
+          </g>
+
+          <!-- Vertical Bus Lines for A1, A0, B1, B0 -->
+          <!-- Bus X coordinates: A1=55, A0=90, B1=125, B0=160 -->
+          <g id="busLines">
+            <!-- Vertical Labels at Top of Bus -->
+            <text x="55" y="52" text-anchor="middle" class="fill-sky-400 font-bold text-xs mono">A₁</text>
+            <text x="90" y="52" text-anchor="middle" class="fill-sky-300 font-bold text-xs mono">A₀</text>
+            <text x="125" y="52" text-anchor="middle" class="fill-amber-400 font-bold text-xs mono">B₁</text>
+            <text x="160" y="52" text-anchor="middle" class="fill-amber-300 font-bold text-xs mono">B₀</text>
+
+            <!-- Interactive SVG Toggle Boxes at Top of Bus -->
+            <g id="svgBtnA1" class="cursor-pointer" data-bit="A1">
+              <rect x="41" y="60" width="28" height="28" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+              <text id="svgTxtA1" x="55" y="79" text-anchor="middle" class="fill-sky-400 font-bold text-sm mono">1</text>
+            </g>
+            <g id="svgBtnA0" class="cursor-pointer" data-bit="A0">
+              <rect x="76" y="60" width="28" height="28" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+              <text id="svgTxtA0" x="90" y="79" text-anchor="middle" class="fill-sky-400 font-bold text-sm mono">1</text>
+            </g>
+            <g id="svgBtnB1" class="cursor-pointer" data-bit="B1">
+              <rect x="111" y="60" width="28" height="28" rx="6" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+              <text id="svgTxtB1" x="125" y="79" text-anchor="middle" class="fill-amber-400 font-bold text-sm mono">1</text>
+            </g>
+            <g id="svgBtnB0" class="cursor-pointer" data-bit="B0">
+              <rect x="146" y="60" width="28" height="28" rx="6" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+              <text id="svgTxtB0" x="160" y="79" text-anchor="middle" class="fill-amber-400 font-bold text-sm mono">0</text>
+            </g>
+
+            <!-- Main Bus Vertical Wires -->
+            <path id="wireBusA1" d="M 55 88 L 55 440" class="wire-high" />
+            <path id="wireBusA0" d="M 90 88 L 90 440" class="wire-high" />
+            <path id="wireBusB1" d="M 125 88 L 125 440" class="wire-high" />
+            <path id="wireBusB0" d="M 160 88 L 160 440" class="wire-low" />
+          </g>
+
+          <!-- Tap Horizontal Wires from Bus to the 4 Partial-Product AND Gates -->
+          <!-- Gate 0 (P0 = A0 * B0): y=95 (A0), y=125 (B0), center y=110 -->
+          <path id="tapG0_A0" d="M 90 95 L 265 95" class="wire-high" />
+          <circle cx="90" cy="95" r="4.5" fill="#38bdf8" />
+          <path id="tapG0_B0" d="M 160 125 L 265 125" class="wire-low" />
+          <circle cx="160" cy="125" r="4.5" fill="#fbbf24" />
+
+          <!-- Gate 1 (P1 = A1 * B0): y=190 (A1), y=220 (B0), center y=205 -->
+          <path id="tapG1_A1" d="M 55 190 L 265 190" class="wire-high" />
+          <circle cx="55" cy="190" r="4.5" fill="#38bdf8" />
+          <path id="tapG1_B0" d="M 160 220 L 265 220" class="wire-low" />
+          <circle cx="160" cy="220" r="4.5" fill="#fbbf24" />
+
+          <!-- Gate 2 (P2 = A0 * B1): y=290 (A0), y=320 (B1), center y=305 -->
+          <path id="tapG2_A0" d="M 90 290 L 265 290" class="wire-high" />
+          <circle cx="90" cy="290" r="4.5" fill="#38bdf8" />
+          <path id="tapG2_B1" d="M 125 320 L 265 320" class="wire-high" />
+          <circle cx="125" cy="320" r="4.5" fill="#fbbf24" />
+
+          <!-- Gate 3 (P3 = A1 * B1): y=390 (A1), y=420 (B1), center y=405 -->
+          <path id="tapG3_A1" d="M 55 390 L 265 390" class="wire-high" />
+          <circle cx="55" cy="390" r="4.5" fill="#38bdf8" />
+          <path id="tapG3_B1" d="M 125 420 L 265 420" class="wire-high" />
+          <circle cx="125" cy="420" r="4.5" fill="#fbbf24" />
+
+          <!-- Input Tap Labels near AND gates -->
+          <g class="text-[11px] mono fill-slate-400">
+            <text x="255" y="90" text-anchor="end">A₀</text>
+            <text x="255" y="121" text-anchor="end">B₀</text>
+            <text x="255" y="185" text-anchor="end">A₁</text>
+            <text x="255" y="216" text-anchor="end">B₀</text>
+            <text x="255" y="285" text-anchor="end">A₀</text>
+            <text x="255" y="316" text-anchor="end">B₁</text>
+            <text x="255" y="385" text-anchor="end">A₁</text>
+            <text x="255" y="416" text-anchor="end">B₁</text>
+          </g>
+
+          <!-- ================= 4 PARTIAL PRODUCT AND GATES ================= -->
+          <!-- AND Gate 0: P0 = A0 . B0 -->
+          <g id="gateAND0" class="gate-box" data-inspect="AND0">
+            <path d="M 265 80 L 305 80 A 30 30 0 0 1 305 140 L 265 140 Z" fill="#1e293b" stroke="#64748b" stroke-width="2.2"/>
+            <text x="295" y="108" text-anchor="middle" class="fill-white font-bold text-xs">AND 1</text>
+            <text x="295" y="123" text-anchor="middle" class="fill-emerald-400 mono text-[10px]">P₀=A₀B₀</text>
+          </g>
+
+          <!-- AND Gate 1: P1 = A1 . B0 -->
+          <g id="gateAND1" class="gate-box" data-inspect="AND1">
+            <path d="M 265 175 L 305 175 A 30 30 0 0 1 305 235 L 265 235 Z" fill="#1e293b" stroke="#64748b" stroke-width="2.2"/>
+            <text x="295" y="203" text-anchor="middle" class="fill-white font-bold text-xs">AND 2</text>
+            <text x="295" y="218" text-anchor="middle" class="fill-purple-300 mono text-[10px]">P₁=A₁B₀</text>
+          </g>
+
+          <!-- AND Gate 2: P2 = A0 . B1 -->
+          <g id="gateAND2" class="gate-box" data-inspect="AND2">
+            <path d="M 265 275 L 305 275 A 30 30 0 0 1 305 335 L 265 335 Z" fill="#1e293b" stroke="#64748b" stroke-width="2.2"/>
+            <text x="295" y="303" text-anchor="middle" class="fill-white font-bold text-xs">AND 3</text>
+            <text x="295" y="318" text-anchor="middle" class="fill-purple-300 mono text-[10px]">P₂=A₀B₁</text>
+          </g>
+
+          <!-- AND Gate 3: P3 = A1 . B1 -->
+          <g id="gateAND3" class="gate-box" data-inspect="AND3">
+            <path d="M 265 375 L 305 375 A 30 30 0 0 1 305 435 L 265 435 Z" fill="#1e293b" stroke="#64748b" stroke-width="2.2"/>
+            <text x="295" y="403" text-anchor="middle" class="fill-white font-bold text-xs">AND 4</text>
+            <text x="295" y="418" text-anchor="middle" class="fill-pink-300 mono text-[10px]">P₃=A₁B₁</text>
+          </g>
+
+          <!-- Wire from P0 directly to Output C0 -->
+          <path id="wireP0_C0" d="M 335 110 L 855 110" class="wire-low" />
+
+          <!-- Partial Product Value Badges on Wires -->
+          <g>
+            <rect x="365" y="96" width="52" height="22" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+            <text id="lblP0" x="391" y="111" text-anchor="middle" class="fill-slate-300 mono text-xs font-bold">P₀ = 0</text>
+
+            <rect x="365" y="194" width="52" height="22" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+            <text id="lblP1" x="391" y="209" text-anchor="middle" class="fill-slate-300 mono text-xs font-bold">P₁ = 0</text>
+
+            <rect x="365" y="294" width="52" height="22" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+            <text id="lblP2" x="391" y="309" text-anchor="middle" class="fill-slate-300 mono text-xs font-bold">P₂ = 1</text>
+
+            <rect x="365" y="394" width="52" height="22" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+            <text id="lblP3" x="391" y="409" text-anchor="middle" class="fill-slate-300 mono text-xs font-bold">P₃ = 1</text>
+          </g>
+
+          <!-- ================= STAGE 2 MODE A: HALF ADDER BLOCK VIEW ================= -->
+          <g id="layerBlockView">
+            <!-- Wires from P1 and P2 into Half Adder 1 (HA1) -->
+            <path id="wireP1_HA1" d="M 335 205 L 490 205" class="wire-low" />
+            <path id="wireP2_HA1" d="M 335 305 L 445 305 L 445 245 L 490 245" class="wire-high" />
+
+            <!-- Half Adder 1 Block -->
+            <g id="blockHA1" class="gate-box" data-inspect="HA1">
+              <rect x="490" y="180" width="135" height="90" rx="10" fill="#1e293b" stroke="#a855f7" stroke-width="2.5"/>
+              <text x="557" y="208" text-anchor="middle" class="fill-purple-300 font-extrabold text-xs">HALF ADDER 1</text>
+              <text x="557" y="224" text-anchor="middle" class="fill-slate-300 mono text-[10px]">S = P₁ ⊕ P₂</text>
+              <text x="557" y="238" text-anchor="middle" class="fill-slate-400 mono text-[10px]">C = P₁ · P₂</text>
+              <!-- Pin Labels -->
+              <text x="498" y="209" class="fill-slate-400 mono text-[10px]">A</text>
+              <text x="498" y="249" class="fill-slate-400 mono text-[10px]">B</text>
+              <text x="617" y="209" text-anchor="end" class="fill-emerald-300 mono text-[10px] font-bold">SUM</text>
+              <text x="617" y="253" text-anchor="end" class="fill-amber-300 mono text-[10px] font-bold">CARRY</text>
+            </g>
+
+            <!-- HA1 Sum to C1 Output -->
+            <path id="wireHA1_C1" d="M 625 205 L 855 205" class="wire-high" />
+
+            <!-- HA1 Carry (K1) to HA2 Input A -->
+            <path id="wireHA1_Carry" d="M 625 250 L 655 250 L 655 345 L 685 345" class="wire-low" />
+            <!-- Carry Badge K1 -->
+            <rect x="630" y="285" width="50" height="20" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+            <text id="lblK1Block" x="655" y="299" text-anchor="middle" class="fill-amber-300 mono text-[11px] font-bold">K₁ = 0</text>
+
+            <!-- P3 Wire to HA2 Input B -->
+            <path id="wireP3_HA2" d="M 335 405 L 655 405 L 655 385 L 685 385" class="wire-high" />
+
+            <!-- Half Adder 2 Block -->
+            <g id="blockHA2" class="gate-box" data-inspect="HA2">
+              <rect x="685" y="320" width="135" height="90" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+              <text x="752" y="348" text-anchor="middle" class="fill-sky-300 font-extrabold text-xs">HALF ADDER 2</text>
+              <text x="752" y="364" text-anchor="middle" class="fill-slate-300 mono text-[10px]">S = K₁ ⊕ P₃</text>
+              <text x="752" y="378" text-anchor="middle" class="fill-slate-400 mono text-[10px]">C = K₁ · P₃</text>
+              <!-- Pin Labels -->
+              <text x="693" y="349" class="fill-amber-300 mono text-[10px]">K₁</text>
+              <text x="693" y="389" class="fill-pink-300 mono text-[10px]">P₃</text>
+              <text x="812" y="349" text-anchor="end" class="fill-emerald-300 mono text-[10px] font-bold">SUM</text>
+              <text x="812" y="393" text-anchor="end" class="fill-emerald-300 mono text-[10px] font-bold">CARRY</text>
+            </g>
+
+            <!-- HA2 Sum to C2 Output (y=315) and HA2 Carry to C3 Output (y=415) -->
+            <path id="wireHA2_C2" d="M 820 345 L 838 345 L 838 315 L 855 315" class="wire-high" />
+            <path id="wireHA2_C3" d="M 820 390 L 838 390 L 838 415 L 855 415" class="wire-low" />
+          </g>
+
+          <!-- ================= STAGE 2 MODE B: INTERNAL GATE-LEVEL VIEW (XOR + AND) ================= -->
+          <g id="layerGateView" class="hidden">
+            <!-- Dashed Enclosure for HA1 -->
+            <rect x="465" y="160" width="160" height="150" rx="10" fill="#0f172a" fill-opacity="0.55" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="5 4"/>
+            <text x="545" y="175" text-anchor="middle" class="fill-purple-300 font-bold text-[10px] mono">HA1 (1 XOR + 1 AND)</text>
+
+            <!-- Wires from P1 (y=205) and P2 (y=305) to HA1 XOR1 and AND5 -->
+            <path id="gWireP1_HA1" d="M 335 205 L 485 205 L 485 265 L 515 265 M 485 205 L 515 205" class="wire-low" />
+            <circle cx="485" cy="205" r="3.5" fill="#94a3b8" />
+            <path id="gWireP2_HA1" d="M 335 305 L 500 305 L 500 225 L 515 225 M 500 285 L 515 285" class="wire-high" />
+            <circle cx="500" cy="285" r="3.5" fill="#94a3b8" />
+
+            <!-- HA1 XOR Gate (Sum = C1) centered at y=215 -->
+            <g class="gate-box" data-inspect="HA1">
+              <path d="M 508 193 Q 520 215 508 237" fill="none" stroke="#c084fc" stroke-width="2.2"/>
+              <path d="M 515 193 Q 545 193 565 215 Q 545 237 515 237 Q 527 215 515 193 Z" fill="#1e293b" stroke="#c084fc" stroke-width="2"/>
+              <text x="537" y="219" text-anchor="middle" class="fill-purple-200 font-bold text-[10px] mono">XOR</text>
+            </g>
+
+            <!-- HA1 AND Gate (Carry = K1) centered at y=275 -->
+            <g class="gate-box" data-inspect="HA1">
+              <path d="M 515 253 L 542 253 A 22 22 0 0 1 542 297 L 515 297 Z" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+              <text x="536" y="279" text-anchor="middle" class="fill-amber-200 font-bold text-[10px] mono">AND</text>
+            </g>
+
+            <!-- Wire from HA1 XOR to C1 (y=205) -->
+            <path id="gWireXOR1_C1" d="M 565 215 L 700 215 L 700 205 L 855 205" class="wire-high" />
+
+            <!-- Dashed Enclosure for HA2 -->
+            <rect x="665" y="275" width="160" height="165" rx="10" fill="#0f172a" fill-opacity="0.55" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5 4"/>
+            <text x="745" y="290" text-anchor="middle" class="fill-sky-300 font-bold text-[10px] mono">HA2 (1 XOR + 1 AND)</text>
+
+            <!-- Wire K1 from HA1 AND (y=275) to HA2 XOR2 and AND6 -->
+            <path id="gWireK1_HA2" d="M 564 275 L 685 275 L 685 385 L 715 385 M 685 315 L 715 315" class="wire-low" />
+            <circle cx="685" cy="315" r="3.5" fill="#f59e0b" />
+
+            <!-- Wire P3 (y=405) to HA2 XOR2 and AND6 -->
+            <path id="gWireP3_HA2" d="M 335 405 L 700 405 L 700 335 L 715 335 M 700 405 L 715 405" class="wire-high" />
+            <circle cx="700" cy="405" r="3.5" fill="#f472b6" />
+
+            <!-- HA2 XOR Gate (Sum = C2) centered at y=325 -->
+            <g class="gate-box" data-inspect="HA2">
+              <path d="M 708 303 Q 720 325 708 347" fill="none" stroke="#38bdf8" stroke-width="2.2"/>
+              <path d="M 715 303 Q 745 303 765 325 Q 745 347 715 347 Q 727 325 715 303 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+              <text x="737" y="329" text-anchor="middle" class="fill-sky-200 font-bold text-[10px] mono">XOR</text>
+            </g>
+
+            <!-- HA2 AND Gate (Carry = C3) centered at y=395 -->
+            <g class="gate-box" data-inspect="HA2">
+              <path d="M 715 373 L 742 373 A 22 22 0 0 1 742 417 L 715 417 Z" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+              <text x="736" y="399" text-anchor="middle" class="fill-emerald-200 font-bold text-[10px] mono">AND</text>
+            </g>
+
+            <!-- HA2 Outputs to C2 (y=315) and C3 (y=415) -->
+            <path id="gWireXOR2_C2" d="M 765 325 L 835 325 L 835 315 L 855 315" class="wire-high" />
+            <path id="gWireAND2_C3" d="M 764 395 L 835 395 L 835 415 L 855 415" class="wire-low" />
+          </g>
+
+          <!-- ================= 4 OUTPUT NODES ON RIGHT (C0, C1, C2, C3) ================= -->
+          <!-- Output C0 (y=110) -->
+          <g id="outNodeC0" class="gate-box" data-inspect="OUT_C0">
+            <rect id="svgOutBoxC0" x="855" y="88" width="95" height="44" rx="10" fill="#0f172a" stroke="#334155" stroke-width="2.2"/>
+            <text x="883" y="108" text-anchor="middle" class="fill-slate-400 text-[11px] font-bold mono">C₀ (LSB)</text>
+            <text x="883" y="123" text-anchor="middle" class="fill-slate-500 text-[10px] mono">A₀·B₀</text>
+            <circle id="svgOutCircleC0" cx="928" cy="110" r="13" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+            <text id="svgOutValC0" x="928" y="115" text-anchor="middle" class="fill-slate-400 font-extrabold text-sm mono">0</text>
+          </g>
+
+          <!-- Output C1 (y=205) -->
+          <g id="outNodeC1" class="gate-box" data-inspect="OUT_C1">
+            <rect id="svgOutBoxC1" x="855" y="183" width="95" height="44" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="2.2"/>
+            <text x="883" y="203" text-anchor="middle" class="fill-emerald-300 text-[11px] font-bold mono">C₁ (2¹)</text>
+            <text x="883" y="218" text-anchor="middle" class="fill-slate-400 text-[10px] mono">HA1 Sum</text>
+            <circle id="svgOutCircleC1" cx="928" cy="205" r="13" fill="#10b981" stroke="#34d399" stroke-width="1.5"/>
+            <text id="svgOutValC1" x="928" y="210" text-anchor="middle" class="fill-slate-950 font-extrabold text-sm mono">1</text>
+          </g>
+
+          <!-- Output C2 (y=315) -->
+          <g id="outNodeC2" class="gate-box" data-inspect="OUT_C2">
+            <rect id="svgOutBoxC2" x="855" y="293" width="95" height="44" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="2.2"/>
+            <text x="883" y="313" text-anchor="middle" class="fill-emerald-300 text-[11px] font-bold mono">C₂ (2²)</text>
+            <text x="883" y="328" text-anchor="middle" class="fill-slate-400 text-[10px] mono">HA2 Sum</text>
+            <circle id="svgOutCircleC2" cx="928" cy="315" r="13" fill="#10b981" stroke="#34d399" stroke-width="1.5"/>
+            <text id="svgOutValC2" x="928" y="320" text-anchor="middle" class="fill-slate-950 font-extrabold text-sm mono">1</text>
+          </g>
+
+          <!-- Output C3 (y=415) -->
+          <g id="outNodeC3" class="gate-box" data-inspect="OUT_C3">
+            <rect id="svgOutBoxC3" x="855" y="393" width="95" height="44" rx="10" fill="#0f172a" stroke="#334155" stroke-width="2.2"/>
+            <text x="883" y="413" text-anchor="middle" class="fill-slate-400 text-[11px] font-bold mono">C₃ (MSB)</text>
+            <text x="883" y="428" text-anchor="middle" class="fill-slate-500 text-[10px] mono">HA2 Carry</text>
+            <circle id="svgOutCircleC3" cx="928" cy="415" r="13" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+            <text id="svgOutValC3" x="928" y="420" text-anchor="middle" class="fill-slate-400 font-extrabold text-sm mono">0</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Bottom Section: Interactive 16-Row Truth Table & Boolean Equations / Lab Hardware Guide -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- Complete 16-Row Interactive Truth Table (7 Cols) -->
+      <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-sm font-bold text-white">📊 Interactive 16-Row Truth Table</h2>
+            <p class="text-xs text-slate-400">Active input combination is highlighted in green. Click any row to test that input in the simulator!</p>
+          </div>
+          <span class="text-xs mono px-2.5 py-1 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700" id="activeRowIndicator">Row #14 Active (3 × 2 = 6)</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800 max-h-[380px] overflow-y-auto">
+          <table class="w-full text-center border-collapse text-xs mono">
+            <thead class="bg-slate-950 sticky top-0 z-10 border-b border-slate-800 text-[11px] uppercase">
+              <tr>
+                <th class="py-2.5 px-2 text-slate-400 font-sans">Dec</th>
+                <th class="py-2.5 px-2 text-sky-400">A₁</th>
+                <th class="py-2.5 px-2 text-sky-400 border-r border-slate-800">A₀</th>
+                <th class="py-2.5 px-2 text-amber-400">B₁</th>
+                <th class="py-2.5 px-2 text-amber-400 border-r border-slate-800">B₀</th>
+                <th class="py-2.5 px-1.5 text-slate-400" title="P0 = A0.B0">P₀</th>
+                <th class="py-2.5 px-1.5 text-slate-400" title="P1 = A1.B0">P₁</th>
+                <th class="py-2.5 px-1.5 text-slate-400" title="P2 = A0.B1">P₂</th>
+                <th class="py-2.5 px-1.5 text-slate-400 border-r border-slate-800" title="P3 = A1.B1">P₃</th>
+                <th class="py-2.5 px-2 text-emerald-400 font-bold">C₃</th>
+                <th class="py-2.5 px-2 text-emerald-400 font-bold">C₂</th>
+                <th class="py-2.5 px-2 text-emerald-400 font-bold">C₁</th>
+                <th class="py-2.5 px-2 text-emerald-400 font-bold border-r border-slate-800">C₀</th>
+                <th class="py-2.5 px-2 text-white font-sans">Product</th>
+              </tr>
+            </thead>
+            <tbody id="truthTableBody" class="divide-y divide-slate-800/70">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Boolean Equations & Lab IC Implementation Specs (5 Cols) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between gap-4">
+        <div class="space-y-3">
+          <h2 class="text-sm font-bold text-white">📐 Design Equations &amp; Lab Hardware Guide</h2>
+
+          <!-- Stage 1 Equations -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+            <div class="text-xs font-bold text-sky-400 uppercase tracking-wider">1. Partial Products (4 AND Gates)</div>
+            <div class="grid grid-cols-2 gap-2 mono text-xs pt-1">
+              <div class="bg-slate-900 px-2.5 py-1.5 rounded border border-slate-800 flex justify-between">
+                <span class="text-slate-300">P₀ = A₀ · B₀</span>
+                <span id="eqP0" class="text-emerald-400 font-bold">= 0</span>
+              </div>
+              <div class="bg-slate-900 px-2.5 py-1.5 rounded border border-slate-800 flex justify-between">
+                <span class="text-slate-300">P₁ = A₁ · B₀</span>
+                <span id="eqP1" class="text-purple-300 font-bold">= 0</span>
+              </div>
+              <div class="bg-slate-900 px-2.5 py-1.5 rounded border border-slate-800 flex justify-between">
+                <span class="text-slate-300">P₂ = A₀ · B₁</span>
+                <span id="eqP2" class="text-purple-300 font-bold">= 1</span>
+              </div>
+              <div class="bg-slate-900 px-2.5 py-1.5 rounded border border-slate-800 flex justify-between">
+                <span class="text-slate-300">P₃ = A₁ · B₁</span>
+                <span id="eqP3" class="text-pink-300 font-bold">= 1</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 2 Equations -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. Final Product Outputs (C₃ C₂ C₁ C₀)</div>
+            <div class="space-y-1.5 mono text-xs">
+              <div class="bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center justify-between">
+                <span><strong class="text-emerald-400">C₀</strong> = A₀ · B₀</span>
+                <span id="eqOutC0" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">0</span>
+              </div>
+              <div class="bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center justify-between">
+                <span><strong class="text-emerald-400">C₁</strong> = (A₁·B₀) ⊕ (A₀·B₁) <span class="text-slate-500 text-[10px]">[HA1 Sum]</span></span>
+                <span id="eqOutC1" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">1</span>
+              </div>
+              <div class="bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center justify-between">
+                <span><strong class="text-amber-400">K₁</strong> = (A₁·B₀) · (A₀·B₁) <span class="text-slate-500 text-[10px]">[HA1 Carry]</span></span>
+                <span id="eqOutK1" class="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-bold">0</span>
+              </div>
+              <div class="bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center justify-between">
+                <span><strong class="text-emerald-400">C₂</strong> = K₁ ⊕ (A₁·B₁) <span class="text-slate-500 text-[10px]">[HA2 Sum]</span></span>
+                <span id="eqOutC2" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">1</span>
+              </div>
+              <div class="bg-slate-900 px-3 py-1.5 rounded border border-slate-800 flex items-center justify-between">
+                <span><strong class="text-emerald-400">C₃</strong> = K₁ · (A₁·B₁) <span class="text-slate-500 text-[10px]">[HA2 Carry]</span></span>
+                <span id="eqOutC3" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Bill of Materials for Viva / Lab Report -->
+        <div class="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl p-3">
+          <div class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1.5">🛠️ Hardware IC Requirement (Breadboard / Viva Info)</div>
+          <ul class="text-xs text-slate-300 space-y-1">
+            <li>• <strong>Partial Products:</strong> 4 × 2-input AND gates (1× <span class="mono text-sky-300">IC 7408</span>)</li>
+            <li>• <strong>2 Half Adders:</strong> Each Half Adder = 1 XOR gate + 1 AND gate.</li>
+            <li>• <strong>Total Logic Gates Needed:</strong> <strong>6 AND gates</strong> (2× <span class="mono text-sky-300">IC 7408</span>) + <strong>2 XOR gates</strong> (1× <span class="mono text-purple-300">IC 7486</span>).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Application State
+    const state = {
+      A1: 1,
+      A0: 1,
+      B1: 1,
+      B0: 0,
+      viewMode: 'block', // 'block' or 'gate'
+      pulseAnim: true,
+      selectedInspect: 'HA1'
+    };
+
+    // Compute all combinational signals from A1, A0, B1, B0
+    function computeCircuit(s) {
+      const P0 = s.A0 & s.B0;
+      const P1 = s.A1 & s.B0;
+      const P2 = s.A0 & s.B1;
+      const P3 = s.A1 & s.B1;
+
+      // Half Adder 1 combines P1 and P2
+      const C0 = P0;
+      const C1 = P1 ^ P2;
+      const K1 = P1 & P2;
+
+      // Half Adder 2 combines K1 and P3
+      const C2 = K1 ^ P3;
+      const C3 = K1 & P3;
+
+      const decA = (s.A1 << 1) | s.A0;
+      const decB = (s.B1 << 1) | s.B0;
+      const decOut = (C3 << 3) | (C2 << 2) | (C1 << 1) | C0;
+
+      return { P0, P1, P2, P3, K1, C0, C1, C2, C3, decA, decB, decOut };
+    }
+
+    // Helper to style SVG wire classes based on logic level
+    function setWireState(id, bitVal, isCarry = false) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (bitVal === 1) {
+        if (isCarry) {
+          el.setAttribute('class', state.pulseAnim ? 'wire-carry-high' : 'wire-high-static');
+        } else {
+          el.setAttribute('class', state.pulseAnim ? 'wire-high' : 'wire-high-static');
+        }
+      } else {
+        el.setAttribute('class', 'wire-low');
+      }
+    }
+
+    // Update Input Button UI
+    function updateInputButtonUI(bitKey, val, colorName) {
+      const btn = document.getElementById('btn' + bitKey);
+      const valSpan = document.getElementById('val' + bitKey);
+      const svgTxt = document.getElementById('svgTxt' + bitKey);
+
+      if (svgTxt) svgTxt.textContent = val;
+
+      if (val === 1) {
+        if (colorName === 'sky') {
+          btn.className = 'bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-sky-500/15 border-sky-500 text-white';
+          valSpan.className = 'w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-sky-500 text-slate-950 shadow';
+        } else {
+          btn.className = 'bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-amber-500/15 border-amber-500 text-white';
+          valSpan.className = 'w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-amber-500 text-slate-950 shadow';
+        }
+      } else {
+        btn.className = 'bit-toggle group relative rounded-xl p-2.5 border transition flex items-center justify-between bg-slate-900 border-slate-700 text-slate-300';
+        valSpan.className = 'w-8 h-8 rounded-lg flex items-center justify-center font-bold mono text-lg bg-slate-800 text-slate-400';
+      }
+      valSpan.textContent = val;
+    }
+
+    // Update Output LED Card and SVG Output Node
+    function updateOutputLED(idx, bitVal) {
+      const card = document.getElementById('ledCardC' + idx);
+      const bulb = document.getElementById('ledBulbC' + idx);
+      const svgBox = document.getElementById('svgOutBoxC' + idx);
+      const svgCirc = document.getElementById('svgOutCircleC' + idx);
+      const svgVal = document.getElementById('svgOutValC' + idx);
+
+      bulb.textContent = bitVal;
+      svgVal.textContent = bitVal;
+
+      if (bitVal === 1) {
+        card.className = 'rounded-xl p-3 border text-center transition bg-emerald-950/30 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+        bulb.className = 'w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-emerald-400 text-slate-950 shadow-[0_0_16px_#10b981] border border-emerald-200';
+        svgBox.setAttribute('stroke', '#10b981');
+        svgCirc.setAttribute('fill', '#10b981');
+        svgCirc.setAttribute('stroke', '#34d399');
+        svgVal.setAttribute('class', 'fill-slate-950 font-extrabold text-sm mono');
+      } else {
+        card.className = 'rounded-xl p-3 border text-center transition bg-slate-950 border-slate-800';
+        bulb.className = 'w-10 h-10 mx-auto rounded-full flex items-center justify-center font-extrabold mono text-lg mb-1.5 transition bg-slate-800 text-slate-500 border border-slate-700';
+        svgBox.setAttribute('stroke', '#334155');
+        svgCirc.setAttribute('fill', '#1e293b');
+        svgCirc.setAttribute('stroke', '#475569');
+        svgVal.setAttribute('class', 'fill-slate-400 font-extrabold text-sm mono');
+      }
+    }
+
+    // Update Gate Inspector Details
+    function renderInspector(sig) {
+      const titleEl = document.getElementById('inspTitle');
+      const badgeEl = document.getElementById('inspBadge');
+      const descEl = document.getElementById('inspDesc');
+
+      const details = {
+        AND0: {
+          title: '🔍 Gate AND 1 — Partial Product P₀',
+          badge: `P₀ = ${sig.P0}`,
+          desc: `Multiplies LSBs: <strong>P₀ = A₀ · B₀ = ${state.A0} · ${state.B0} = ${sig.P0}</strong>. Since no other partial product has weight 2⁰, P₀ connects directly to final output <strong>C₀</strong>.`
+        },
+        AND1: {
+          title: '🔍 Gate AND 2 — Partial Product P₁',
+          badge: `P₁ = ${sig.P1}`,
+          desc: `Computes <strong>P₁ = A₁ · B₀ = ${state.A1} · ${state.B0} = ${sig.P1}</strong> (weight 2¹). Feeds into input A of <strong>Half Adder 1 (HA1)</strong> to be added with P₂.`
+        },
+        AND2: {
+          title: '🔍 Gate AND 3 — Partial Product P₂',
+          badge: `P₂ = ${sig.P2}`,
+          desc: `Computes <strong>P₂ = A₀ · B₁ = ${state.A0} · ${state.B1} = ${sig.P2}</strong> (weight 2¹). Feeds into input B of <strong>Half Adder 1 (HA1)</strong>.`
+        },
+        AND3: {
+          title: '🔍 Gate AND 4 — Partial Product P₃',
+          badge: `P₃ = ${sig.P3}`,
+          desc: `Multiplies MSBs: <strong>P₃ = A₁ · B₁ = ${state.A1} · ${state.B1} = ${sig.P3}</strong> (weight 2²). Feeds into <strong>Half Adder 2 (HA2)</strong> to be added with HA1's carry K₁.`
+        },
+        HA1: {
+          title: '🔍 Half Adder 1 (HA1) — Combining P₁ & P₂',
+          badge: `Sum C₁=${sig.C1}, Carry K₁=${sig.K1}`,
+          desc: `Adds partial products of weight 2¹: <strong>Sum C₁ = P₁ ⊕ P₂ = ${sig.P1} ⊕ ${sig.P2} = ${sig.C1}</strong>, and generates internal carry <strong>K₁ = P₁ · P₂ = ${sig.P1} · ${sig.P2} = ${sig.K1}</strong> to HA2.`
+        },
+        HA2: {
+          title: '🔍 Half Adder 2 (HA2) — Combining K₁ & P₃',
+          badge: `Sum C₂=${sig.C2}, Carry C₃=${sig.C3}`,
+          desc: `Adds HA1 Carry (K₁=${sig.K1}) and MSB Partial Product (P₃=${sig.P3}): <strong>Sum C₂ = K₁ ⊕ P₃ = ${sig.K1} ⊕ ${sig.P3} = ${sig.C2}</strong>, and <strong>Carry C₃ = K₁ · P₃ = ${sig.K1} · ${sig.P3} = ${sig.C3}</strong>.`
+        },
+        OUT_C0: {
+          title: '🔍 Output Bit C₀ (LSB, Weight 2⁰ = 1)',
+          badge: `C₀ = ${sig.C0}`,
+          desc: `Direct output from AND Gate 1: <strong>C₀ = A₀ · B₀ = ${state.A0} · ${state.B0} = ${sig.C0}</strong>.`
+        },
+        OUT_C1: {
+          title: '🔍 Output Bit C₁ (Weight 2¹ = 2)',
+          badge: `C₁ = ${sig.C1}`,
+          desc: `Sum output of Half Adder 1: <strong>C₁ = (A₁·B₀) ⊕ (A₀·B₁) = ${sig.P1} ⊕ ${sig.P2} = ${sig.C1}</strong>.`
+        },
+        OUT_C2: {
+          title: '🔍 Output Bit C₂ (Weight 2² = 4)',
+          badge: `C₂ = ${sig.C2}`,
+          desc: `Sum output of Half Adder 2: <strong>C₂ = K₁ ⊕ (A₁·B₁) = ${sig.K1} ⊕ ${sig.P3} = ${sig.C2}</strong>.`
+        },
+        OUT_C3: {
+          title: '🔍 Output Bit C₃ (MSB, Weight 2³ = 8)',
+          badge: `C₃ = ${sig.C3}`,
+          desc: `Carry output of Half Adder 2: <strong>C₃ = K₁ · (A₁·B₁) = ${sig.K1} · ${sig.P3} = ${sig.C3}</strong>. Only becomes 1 when A=3 (11₂) and B=3 (11₂).`
+        }
+      };
+
+      const info = details[state.selectedInspect] || details.HA1;
+      titleEl.textContent = info.title;
+      badgeEl.textContent = info.badge;
+      descEl.innerHTML = info.desc;
+    }
+
+    // Build and update the 16-row Truth Table
+    function buildTruthTable() {
+      const tbody = document.getElementById('truthTableBody');
+      tbody.innerHTML = '';
+
+      for (let idx = 0; idx < 16; idx++) {
+        const a1 = (idx >> 3) & 1;
+        const a0 = (idx >> 2) & 1;
+        const b1 = (idx >> 1) & 1;
+        const b0 = idx & 1;
+
+        const rowSig = computeCircuit({ A1: a1, A0: a0, B1: b1, B0: b0 });
+
+        const tr = document.createElement('tr');
+        tr.id = `ttRow_${idx}`;
+        tr.className = 'cursor-pointer hover:bg-slate-800/70 transition';
+        tr.addEventListener('click', () => {
+          state.A1 = a1;
+          state.A0 = a0;
+          state.B1 = b1;
+          state.B0 = b0;
+          renderAll();
+        });
+
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 text-slate-400 font-sans">${rowSig.decA}×${rowSig.decB}</td>
+          <td class="py-1.5 px-2 text-sky-300">${a1}</td>
+          <td class="py-1.5 px-2 text-sky-300 border-r border-slate-800">${a0}</td>
+          <td class="py-1.5 px-2 text-amber-300">${b1}</td>
+          <td class="py-1.5 px-2 text-amber-300 border-r border-slate-800">${b0}</td>
+          <td class="py-1.5 px-1.5 text-slate-400">${rowSig.P0}</td>
+          <td class="py-1.5 px-1.5 text-slate-400">${rowSig.P1}</td>
+          <td class="py-1.5 px-1.5 text-slate-400">${rowSig.P2}</td>
+          <td class="py-1.5 px-1.5 text-slate-400 border-r border-slate-800">${rowSig.P3}</td>
+          <td class="py-1.5 px-2 font-bold ${rowSig.C3 ? 'text-emerald-400' : 'text-slate-500'}">${rowSig.C3}</td>
+          <td class="py-1.5 px-2 font-bold ${rowSig.C2 ? 'text-emerald-400' : 'text-slate-500'}">${rowSig.C2}</td>
+          <td class="py-1.5 px-2 font-bold ${rowSig.C1 ? 'text-emerald-400' : 'text-slate-500'}">${rowSig.C1}</td>
+          <td class="py-1.5 px-2 font-bold border-r border-slate-800 ${rowSig.C0 ? 'text-emerald-400' : 'text-slate-500'}">${rowSig.C0}</td>
+          <td class="py-1.5 px-2 font-bold text-white font-sans">= ${rowSig.decOut}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Master Render Function
+    function renderAll() {
+      const sig = computeCircuit(state);
+
+      // 1. Update Input Buttons & Decimals
+      updateInputButtonUI('A1', state.A1, 'sky');
+      updateInputButtonUI('A0', state.A0, 'sky');
+      updateInputButtonUI('B1', state.B1, 'amber');
+      updateInputButtonUI('B0', state.B0, 'amber');
+      document.getElementById('decA').textContent = sig.decA;
+      document.getElementById('decB').textContent = sig.decB;
+
+      // 2. Update Multiplication Paper Matrix
+      document.getElementById('mA1').textContent = state.A1;
+      document.getElementById('mA0').textContent = state.A0;
+      document.getElementById('mB1').textContent = state.B1;
+      document.getElementById('mB0').textContent = state.B0;
+      document.getElementById('mP0').textContent = sig.P0;
+      document.getElementById('mP1').textContent = sig.P1;
+      document.getElementById('mP2').textContent = sig.P2;
+      document.getElementById('mP3').textContent = sig.P3;
+      document.getElementById('mK1').textContent = sig.K1;
+      document.getElementById('mC3').textContent = sig.C3;
+      document.getElementById('mC2').textContent = sig.C2;
+      document.getElementById('mC1').textContent = sig.C1;
+      document.getElementById('mC0').textContent = sig.C0;
+
+      document.getElementById('mathSummaryBadge').textContent =
+        `${state.A1}${state.A0}₂ × ${state.B1}${state.B0}₂ = ${sig.C3}${sig.C2}${sig.C1}${sig.C0}₂`;
+      document.getElementById('ha1MiniStatus').textContent = `S=${sig.C1}, C=${sig.K1}`;
+      document.getElementById('ha2MiniStatus').textContent = `S=${sig.C2}, C=${sig.C3}`;
+      document.getElementById('decimalEquation').textContent = `${sig.decA} × ${sig.decB} = ${sig.decOut}`;
+
+      // 3. Update Output LEDs
+      updateOutputLED(0, sig.C0);
+      updateOutputLED(1, sig.C1);
+      updateOutputLED(2, sig.C2);
+      updateOutputLED(3, sig.C3);
+
+      // 4. Update SVG Wires & Labels
+      setWireState('wireBusA1', state.A1);
+      setWireState('wireBusA0', state.A0);
+      setWireState('wireBusB1', state.B1);
+      setWireState('wireBusB0', state.B0);
+
+      setWireState('tapG0_A0', state.A0);
+      setWireState('tapG0_B0', state.B0);
+      setWireState('tapG1_A1', state.A1);
+      setWireState('tapG1_B0', state.B0);
+      setWireState('tapG2_A0', state.A0);
+      setWireState('tapG2_B1', state.B1);
+      setWireState('tapG3_A1', state.A1);
+      setWireState('tapG3_B1', state.B1);
+
+      setWireState('wireP0_C0', sig.P0);
+      setWireState('wireP1_HA1', sig.P1);
+      setWireState('wireP2_HA1', sig.P2);
+      setWireState('wireP3_HA2', sig.P3);
+      setWireState('wireHA1_C1', sig.C1);
+      setWireState('wireHA1_Carry', sig.K1, true);
+      setWireState('wireHA2_C2', sig.C2);
+      setWireState('wireHA2_C3', sig.C3);
+
+      // Gate-level view wires
+      setWireState('gWireP1_HA1', sig.P1);
+      setWireState('gWireP2_HA1', sig.P2);
+      setWireState('gWireXOR1_C1', sig.C1);
+      setWireState('gWireK1_HA2', sig.K1, true);
+      setWireState('gWireP3_HA2', sig.P3);
+      setWireState('gWireXOR2_C2', sig.C2);
+      setWireState('gWireAND2_C3', sig.C3);
+
+      // SVG Partial Product Badges
+      document.getElementById('lblP0').textContent = `P₀ = ${sig.P0}`;
+      document.getElementById('lblP1').textContent = `P₁ = ${sig.P1}`;
+      document.getElementById('lblP2').textContent = `P₂ = ${sig.P2}`;
+      document.getElementById('lblP3').textContent = `P₃ = ${sig.P3}`;
+      document.getElementById('lblK1Block').textContent = `K₁ = ${sig.K1}`;
+
+      // 5. Update Equations Card
+      document.getElementById('eqP0').textContent = `= ${sig.P0}`;
+      document.getElementById('eqP1').textContent = `= ${sig.P1}`;
+      document.getElementById('eqP2').textContent = `= ${sig.P2}`;
+      document.getElementById('eqP3').textContent = `= ${sig.P3}`;
+      document.getElementById('eqOutC0').textContent = sig.C0;
+      document.getElementById('eqOutC1').textContent = sig.C1;
+      document.getElementById('eqOutK1').textContent = sig.K1;
+      document.getElementById('eqOutC2').textContent = sig.C2;
+      document.getElementById('eqOutC3').textContent = sig.C3;
+
+      // 6. Highlight Active Row in Truth Table
+      const activeIdx = (state.A1 << 3) | (state.A0 << 2) | (state.B1 << 1) | state.B0;
+      document.getElementById('activeRowIndicator').textContent =
+        `Row #${activeIdx} Active (${sig.decA} × ${sig.decB} = ${sig.decOut})`;
+
+      for (let i = 0; i < 16; i++) {
+        const tr = document.getElementById(`ttRow_${i}`);
+        if (!tr) continue;
+        if (i === activeIdx) {
+          tr.className = 'cursor-pointer bg-emerald-500/20 border-l-4 border-l-emerald-400 font-bold transition';
+        } else {
+          tr.className = 'cursor-pointer hover:bg-slate-800/70 transition';
+        }
+      }
+
+      // 7. Update Inspector
+      renderInspector(sig);
+    }
+
+    // Initialize Event Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      buildTruthTable();
+
+      // Bit Toggle Buttons (Panel + SVG Bus)
+      document.querySelectorAll('[data-bit]').forEach(el => {
+        el.addEventListener('click', () => {
+          const bit = el.getAttribute('data-bit');
+          state[bit] = state[bit] === 1 ? 0 : 1;
+          renderAll();
+        });
+      });
+
+      // Quick Presets
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const parts = btn.getAttribute('data-preset').split(',').map(Number);
+          state.A1 = parts[0];
+          state.A0 = parts[1];
+          state.B1 = parts[2];
+          state.B0 = parts[3];
+          renderAll();
+        });
+      });
+
+      // Gate Inspector Clicks
+      document.querySelectorAll('[data-inspect]').forEach(node => {
+        node.addEventListener('click', () => {
+          state.selectedInspect = node.getAttribute('data-inspect');
+          renderAll();
+        });
+      });
+
+      // View Mode Switch (Half-Adder Block View vs Internal XOR+AND Gate View)
+      const btnBlock = document.getElementById('btnViewBlock');
+      const btnGate = document.getElementById('btnViewGate');
+      const layerBlock = document.getElementById('layerBlockView');
+      const layerGate = document.getElementById('layerGateView');
+      const viewBadge = document.getElementById('viewModeBadge');
+      const stage2Header = document.getElementById('stage2Header');
+
+      btnBlock.addEventListener('click', () => {
+        state.viewMode = 'block';
+        layerBlock.classList.remove('hidden');
+        layerGate.classList.add('hidden');
+        btnBlock.className = 'px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950 shadow transition';
+        btnGate.className = 'px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition';
+        viewBadge.textContent = '4 AND Gates + 2 Half Adders';
+        stage2Header.textContent = 'STAGE 2: COMBINING (HALF ADDERS)';
+      });
+
+      btnGate.addEventListener('click', () => {
+        state.viewMode = 'gate';
+        layerGate.classList.remove('hidden');
+        layerBlock.classList.add('hidden');
+        btnGate.className = 'px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950 shadow transition';
+        btnBlock.className = 'px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition';
+        viewBadge.textContent = 'Gate-Level (6 AND + 2 XOR Gates)';
+        stage2Header.textContent = 'STAGE 2: INTERNAL GATES (XOR + AND)';
+      });
+
+      // Pulse Animation Toggle
+      document.getElementById('btnPulseToggle').addEventListener('click', () => {
+        state.pulseAnim = !state.pulseAnim;
+        document.getElementById('pulseLabel').textContent = state.pulseAnim ? 'Signal Flow: ON' : 'Signal Flow: STATIC';
+        document.getElementById('pulseDot').className = state.pulseAnim
+          ? 'w-2 h-2 rounded-full bg-emerald-400 animate-ping'
+          : 'w-2 h-2 rounded-full bg-slate-500';
+        renderAll();
+      });
+
+      // Banglish Guide Banner Toggle
+      const guideBanner = document.getElementById('guideBanner');
+      document.getElementById('btnLangToggle').addEventListener('click', () => {
+        guideBanner.classList.toggle('hidden');
+      });
+      document.getElementById('btnCloseGuide').addEventListener('click', () => {
+        guideBanner.classList.add('hidden');
+      });
+
+      // Initial Render
+      renderAll();
+    });
+  </script>
+</body>
+</html>
