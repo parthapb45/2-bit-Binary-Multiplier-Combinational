@@ -121,7 +121,7 @@ Four input switches control the binary inputs, while four LEDs display the final
 ![Circuit Diagram](2-bit-binary-Multiplier.png)
 
 ### Gate-Level Logic Schematic showing all 6 AND Gates (two 74HC08 ICs) and 2 XOR Gates (one 74HC86 IC)
-![Web Simulator](screenshots/simulator.png)
+![Web Simulator](2-bit-Binary-Multiplier Diagram.jpg)
 
 ## 💻 Web-Based Circuit Simulator
 
