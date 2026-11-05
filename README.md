@@ -115,6 +115,13 @@ The circuit was designed and tested using a virtual breadboard in Autodesk Tinke
 The LM7805 regulator provides a regulated 5V supply to the circuit.
 
 Four input switches control the binary inputs, while four LEDs display the final product.
+## 📸 Project Screenshots
+
+### Circuit Diagram
+![Circuit Diagram](2-bit-binary-Multiplier.png)
+
+### Gate-Level Logic Schematic showing all 6 AND Gates (two 74HC08 ICs) and 2 XOR Gates (one 74HC86 IC)
+![Web Simulator](screenshots/simulator.png)
 
 ## 💻 Web-Based Circuit Simulator
 
