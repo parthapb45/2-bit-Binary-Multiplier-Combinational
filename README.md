@@ -64,26 +64,6 @@ The multiplier accepts two 2-bit inputs:
 | Binary Inputs | 4 | A1, A0, B1, B0 |
 | Output Bits | 4 | C3, C2, C1, C0 |
 
-### Partial Product Generation
-
-Four AND gates generate the partial products:
-
-\[
-P_0=A_0\cdot B_0
-\]
-
-\[
-P_1=A_1\cdot B_0
-\]
-
-\[
-P_2=A_0\cdot B_1
-\]
-
-\[
-P_3=A_1\cdot B_1
-\]
-
 ### Half Adder Operations
 
 **Half Adder 1 (HA1)**
@@ -221,7 +201,7 @@ Try the interactive simulator:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/parthapb45/2-bit-Binary-Multiplier-Combinational.git
+https://github.com/parthapb45/2-bit-Binary-Multiplier-Combinational.git
 ```
 
 2. Open the project directory:
